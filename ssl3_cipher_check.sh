@@ -45,36 +45,20 @@ else
 fi
 DELAY=1
 
-SSL3_CIPHERS="NULL-MD5 NULL-SHA EXP-RC4-MD5 RC4-MD5 RC4-SHA EXP-RC2-CBC-MD5 IDEA-CBC-SHA EXP-DES-CBC-SHA DES-CBC-SHA DES-CBC3-SHA EXP-DH-DSS-DES-CBC-SHA DH-DSS-DES-CBC-SHA DH-DSS-DES-CBC3-SHA EXP-DH-RSA-DES-CBC-SHA DH-RSA-DES-CBC-SHA DH-RSA-DES-CBC3-SHA EXP-DHE-DSS-DES-CBC-SHA DHE-DSS-CBC-SHA DHE-DSS-DES-CBC3-SHA EXP-DHE-RSA-DES-CBC-SHA DHE-RSA-DES-CBC-SHA DHE-RSA-DES-CBC3-SHA EXP-ADH-RC4-MD5 ADH-RC4-MD5 EXP-ADH-DES-CBC-SHA ADH-DES-CBC-SHA ADH-DES-CBC3-SHA"
+echo "Testing $SERVER for support of SSL3.0 ..."
 
-SSL3_CIPHER_DETECTED=0
-echo "Testing $SERVER for support of SSL3.0 ciphers..."
-echo
-for cipher in ${SSL3_CIPHERS[@]}
-do
-echo -n $cipher...
-result=`echo -n | openssl s_client -cipher "$cipher" -connect $SERVER 2>&1`
-if [[ "$result" =~ "Cipher is " ]] ; then
-  echo "YES - SSL 3.0 cipher detected"
-  SSL3_CIPHER_DETECTED=1
+result=`echo -n | openssl s_client -connect $SERVER -ssl3 2>&1`
+if [[ "$result" =~ "New, TLSv1/SSLv3, Cipher is" ]] ; then
+  echo "YES - SSL 3.0 support detected on $SERVER"
+  exit 1
 else
   if [[ "$result" =~ ":error:" ]] ; then
     error=`echo -n $result | cut -d':' -f6`
-    echo NO \($error\)
+    echo NO SSL 3.0 support detected on $SERVER \($error\)
+    exit 0
   else
-    echo UNKNOWN RESPONSE
-    echo $result
+    echo "ERROR:  UNKNOWN RESPONSE: $result"
+    exit 255
   fi
 fi
-sleep $DELAY
-done
-
-if [[ $SSL3_CIPHER_DETECTED -ne 0 ]] ; then
-   echo
-   echo "SSL3 ciphers were detected on server $SERVER"
-   exit 1
-fi
-echo
-echo "\nSSL3 ciphers were NOT detected on server $SERVER"
-exit 0
 
